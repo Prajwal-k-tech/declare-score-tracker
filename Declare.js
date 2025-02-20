@@ -44,13 +44,18 @@ function addNewRound() {
 
     tableBody.appendChild(row);
 }
-function nextRound(){
-    for(let i = 0; i < players.length; i++){
-        const score = document.getElementById(`score-${i}`).value;
-        scores[i] += parseInt(score);
+function nextRound() {
+    for (let i = 0; i < players.length; i++) {
+        const input = document.querySelector(`#tableBody tr:last-child td:nth-child(${i + 2}) input`);
+        const score = input.value.trim() === "" ? 0 : parseInt(input.value, 10);
+
+        if (!isNaN(score)) {
+            scores[i] += score;
+        }
     }
     addNewRound();
 }
+
 function declareWinner() {
     document.getElementById("results").style.display = "block";
 
@@ -73,4 +78,5 @@ function newGame() {
     players = [];
     scores = [];
 }
+
 
