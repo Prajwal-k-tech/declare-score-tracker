@@ -1,71 +1,78 @@
 let players = [];
-let scores = [];
-function setupGame(){
-    //A function to set the game board up
-    const num = parseInt(document.getElementById("numPlayers").value);//should take it from the input field
-    scores = Array(num).fill(0); //make the scores 0 initially
-    players = Array(num);
-    //I just want to let the players be player 1, player 2, player 3, etc
-    for(let i = 0; i < num; i++){
-        players[i] = "Player " + (i+1);
+
+function setupGame() {
+    const count = Number(document.getElementById("numPlayers").value);
+    if (!Number.isInteger(count) || count < 2 || count > 12) {
+        alert("Choose between 2 and 12 players.");
+        return;
     }
-    renderTable();
-}
-function renderTable(){
-    //A function to render the table
+    players = Array.from({length: count}, (_, i) => `Player ${i + 1}`);
+    document.getElementById("results").style.display = "none";
     document.getElementById("scoreboard").style.display = "block";
-    document.getElementById("results").display = "none";
-    const tableHead = document.getElementById("tableHead");
-    const tableBody = document.getElementById("tableBody");
-    tableHead.innerHTML = `<tr><th>Round</th>${players.map(p => `<th>${p}</th>`).join('')}</tr>`; ///this maps over players array
-    tableBody.innerHTML = " ";
+    document.getElementById("tableHead").innerHTML =
+        `<tr><th>Round</th>${players.map(name => `<th>${name}</th>`).join("")}</tr>`;
+    document.getElementById("tableBody").replaceChildren();
     addNewRound();
 }
+
 function addNewRound() {
-    const tableBody = document.getElementById("tableBody");
+    const body = document.getElementById("tableBody");
     const row = document.createElement("tr");
-
-    // Create round number column
-    const roundCell = document.createElement("td");
-    roundCell.textContent = `Round ${tableBody.children.length + 1}`;
-    row.appendChild(roundCell);
-
-    // Create input fields for each player
-    for (let i = 0; i < players.length; i++) {
+    const label = document.createElement("td");
+    label.textContent = `Round ${body.children.length + 1}`;
+    row.appendChild(label);
+    players.forEach(name => {
         const cell = document.createElement("td");
         const input = document.createElement("input");
         input.type = "number";
-        input.id = `score-${i}`;
+        input.step = "1";
         input.style.width = "60px";
         input.style.textAlign = "center";
+        input.setAttribute("aria-label", `${name}, ${label.textContent}`);
         cell.appendChild(input);
         row.appendChild(cell);
-    }
-
-    tableBody.appendChild(row);
+    });
+    body.appendChild(row);
 }
-function nextRound() {
-    for (let i = 0; i < players.length; i++) {
-        const input = document.querySelector(`#tableBody tr:last-child td:nth-child(${i + 2}) input`);
-        const score = input.value.trim() === "" ? 0 : parseInt(input.value, 10);
 
-        if (!isNaN(score)) {
-            scores[i] += score;
+function collectScores() {
+    const scores = Array(players.length).fill(0);
+    for (const row of document.getElementById("tableBody").children) {
+        for (const [i, input] of [...row.querySelectorAll("input")].entries()) {
+            const value = input.value.trim() === "" ? 0 : Number(input.value);
+            if (input.validity.badInput || !Number.isSafeInteger(value) ||
+                !Number.isSafeInteger(scores[i] + value)) {
+                alert("Enter a valid whole-number score for each player. Blank scores count as zero.");
+                input.focus();
+                return null;
+            }
+            scores[i] += value;
         }
     }
+    return scores;
+}
+
+function nextRound() {
+    if (!players.length || collectScores() === null) return;
+    document.getElementById("results").style.display = "none";
     addNewRound();
 }
 
 function declareWinner() {
+    if (!players.length) return;
+    const scores = collectScores();
+    if (scores === null) return;
+    const totals = [...new Set(scores)].sort((a, b) => a - b);
+    const namesAt = score => players.filter((_, i) => scores[i] === score).join(", ");
+    document.getElementById("winner").textContent =
+        `Winner: ${namesAt(totals[0])} with ${totals[0]} points`;
+    document.getElementById("runnerUp").textContent = totals.length > 1
+        ? `Runner-up: ${namesAt(totals[1])} with ${totals[1]} points`
+        : "All players are tied.";
+    document.getElementById("loser").textContent = totals.length > 1
+        ? `Highest total: ${namesAt(totals[totals.length - 1])} with ${totals[totals.length - 1]} points`
+        : "";
     document.getElementById("results").style.display = "block";
-
-    const sortedPlayers = players.map((p, i) => ({ name: p, score: scores[i] }))
-        .sort((a, b) => a.score - b.score);
-
-    document.getElementById("winner").innerHTML = `Winner: ${sortedPlayers[0].name} with ${sortedPlayers[0].score} points`;
-    document.getElementById("runnerUp").innerHTML = `Runner-up: ${sortedPlayers[1].name} with ${sortedPlayers[1].score} points`;
-    document.getElementById("loser").innerHTML = `Loser: ${sortedPlayers[sortedPlayers.length - 1].name} with ${sortedPlayers[sortedPlayers.length - 1].score} points, Lmao you suck`;
-
     document.getElementById("restartButton").style.display = "block";
 }
 
@@ -73,10 +80,7 @@ function newGame() {
     document.getElementById("scoreboard").style.display = "none";
     document.getElementById("results").style.display = "none";
     document.getElementById("restartButton").style.display = "none";
-    document.getElementById("tableBody").innerHTML = "";
-    document.getElementById("tableHead").innerHTML = "";
+    document.getElementById("tableBody").replaceChildren();
+    document.getElementById("tableHead").replaceChildren();
     players = [];
-    scores = [];
 }
-
-
